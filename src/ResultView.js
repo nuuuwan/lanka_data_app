@@ -88,8 +88,16 @@ export default function ResultView({ data, fromCache }) {
   }
 
   const { result, query_time_ms: queryTimeMs } = data;
-  const imageUrl =
-    result && typeof result === "object" ? result.image_url : undefined;
+  // Prefer the API's absolute `image_url`; fall back to a bundled `image_path`
+  // (relative to public/, e.g. "_output/.../Image.png").
+  let imageUrl;
+  if (result && typeof result === "object") {
+    if (result.image_url) {
+      imageUrl = result.image_url;
+    } else if (result.image_path) {
+      imageUrl = `${process.env.PUBLIC_URL || ""}/${result.image_path}`;
+    }
+  }
 
   return (
     <Stack spacing={1.5}>

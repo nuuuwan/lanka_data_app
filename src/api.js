@@ -85,9 +85,39 @@ export async function runCommand(command) {
 // hitting the API again.
 const CACHE_PREFIX = "lanka_data_cache:";
 
-// Run a command, using the localStorage cache when available. Returns the
-// response data along with `fromCache`, indicating whether it came from the
-// cache (true) or was freshly fetched from the API (false).
+// Pre-computed results bundled with the app live under public/_output, at
+// "<command>/Output.json". Serving these avoids calling the API entirely.
+const STATIC_OUTPUT_BASE = `${process.env.PUBLIC_URL || ""}/_output`;
+
+// Try to load a pre-computed result bundled in public/_output. Returns the
+// parsed data if present, or null if there is no bundled result for this
+// command. A non-JSON response (e.g. the dev server's index.html fallback for
+// a missing file) is treated as "not found".
+async function fetchStaticResult(command) {
+  const url = `${STATIC_OUTPUT_BASE}/${encodeCommand(command)}/Output.json`;
+  try {
+    const response = await fetch(url, {
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok) {
+      return null;
+    }
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) {
+      return null;
+    }
+    return await response.json();
+  } catch (err) {
+    return null;
+  }
+}
+
+// Run a command, using cached results when available. Resolution order:
+//   1. localStorage cache (previously fetched this session/browser)
+//   2. results bundled with the app in public/_output
+//   3. the live API
+// Returns the response data along with `fromCache`, indicating whether it came
+// from a cache/bundle (true) or was freshly fetched from the API (false).
 export async function runCommandCached(command) {
   const cacheKey = CACHE_PREFIX + command;
 
@@ -98,6 +128,11 @@ export async function runCommandCached(command) {
     }
   } catch (err) {
     // Ignore unreadable/corrupt cache entries and fall through to fetching.
+  }
+
+  const staticData = await fetchStaticResult(command);
+  if (staticData !== null) {
+    return { data: staticData, fromCache: true };
   }
 
   const data = await runCommand(command);

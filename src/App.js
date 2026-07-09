@@ -71,6 +71,7 @@ export default function App() {
   const onRun = async () => {
     setLoading(true);
     setError(null);
+    setResult(null);
     try {
       const { data, fromCache: cached } = await runCommandCached(command);
       setResult(data);
@@ -200,7 +201,13 @@ export default function App() {
           </Alert>
         )}
 
-        <ResultView data={result} fromCache={fromCache} />
+        {loading ? (
+          <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <ResultView data={result} fromCache={fromCache} />
+        )}
       </Container>
     </ThemeProvider>
   );
