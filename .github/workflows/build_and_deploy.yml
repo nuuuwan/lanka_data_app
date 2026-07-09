@@ -4,36 +4,25 @@ on:
   push:
 
 jobs:
-  build:
-    name: Build
+  build-and-deploy:
+    name: Build and deploy
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v1
+      - uses: actions/setup-node@v4
         with:
-          node-version: 19.x
+          node-version: 20.x
 
       - run: npm install
       - run: npm run build
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: production-files
-          path: ./build
-
-  deploy:
-    name: Deploy
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: production-files
-          path: ./build
-
-      - uses: peaceiris/actions-gh-pages@v3
+      # Publish directly from this job. We intentionally avoid
+      # actions/upload-artifact here because it rejects file paths containing
+      # ":" (e.g. build/_output/.../LK:rivers/...), which are valid on the
+      # Linux runner and on GitHub Pages.
+      - uses: peaceiris/actions-gh-pages@v4
+        if: github.ref == 'refs/heads/main'
         with:
           github_token: ${{ secrets.PAGES_TOKEN }}
           publish_dir: ./build
