@@ -257,12 +257,19 @@
       ],
       "examples": [
         "LK",
+        "LK:province",
         "LK:district",
+        "LK:dsd",
+        "LK:gnd",
         "LK:rivers",
         "LK-1,LK-2",
+        "LK-1,LK-2,LK-3",
         "LK-1...LK-2",
+        "LK-11...LK-13",
         "LK-pre1959",
+        "LK-pre1959:district",
         "LK-1127025@20",
+        "LK:district#5",
         "LK:rivers#10"
       ]
     },
@@ -271,28 +278,23 @@
         "BarChart",
         "BivariateMap",
         "BubbleMap",
-        "BubbleMapAnimation",
         "BumpChart",
         "CSV",
         "Cartogram",
-        "CartogramAnimation",
         "ChartSpec",
         "GeoJSON",
         "HexMap",
-        "HexMapAnimation",
         "Histogram",
         "JSON",
         "LineChart",
         "Map",
-        "MapAnimation",
         "None",
         "Parquet",
         "PieChart",
-        "QuadrantMap",
+        "QuadrantChart",
         "ScatterPlot",
         "StackedBarChart",
         "TSV",
-        "Table",
         "TreeMap"
       ],
       "modifiers": [
@@ -306,7 +308,6 @@
         "Change",
         "Diversity",
         "DiversityPew",
-        "Segregation",
         "Top"
       ]
     },
@@ -319,5 +320,7 @@
       "url": "https://github.com/nuuuwan/lanka_data/blob/main/README.md"
     }
   ],
-  "query_time_ms": 0
+  "query_time_ms": 0,
+  "is_corrected": false,
+  "corrections": []
 }
