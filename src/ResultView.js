@@ -99,6 +99,9 @@ export default function ResultView({ data, fromCache }) {
     }
   }
 
+  const jsonSizeKb =
+    new TextEncoder().encode(JSON.stringify(data)).length / 1024;
+
   return (
     <Stack spacing={1.5}>
       <Stack
@@ -119,6 +122,9 @@ export default function ResultView({ data, fromCache }) {
             {queryTimeMs} ms
           </Typography>
         )}
+        <Typography variant="caption" color="text.secondary">
+          {jsonSizeKb.toFixed(1)} KB
+        </Typography>
       </Stack>
 
       {imageUrl && (
