@@ -1,78 +1,64 @@
-import React from 'react';
-import Box from '@mui/material/Box';
-import Chip from '@mui/material/Chip';
-import Link from '@mui/material/Link';
-import Paper from '@mui/material/Paper';
-import Stack from '@mui/material/Stack';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
-import TableRow from '@mui/material/TableRow';
-import Typography from '@mui/material/Typography';
+import React from "react";
+import BoltIcon from "@mui/icons-material/Bolt";
+import CachedIcon from "@mui/icons-material/Cached";
+import Box from "@mui/material/Box";
+import Chip from "@mui/material/Chip";
+import Link from "@mui/material/Link";
+import Paper from "@mui/material/Paper";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 
-// Detect the common "list of regions with values" JSON shape.
-function isRegionList(result) {
-  return (
-    Array.isArray(result) &&
-    result.length > 0 &&
-    result.every((row) => row && typeof row === 'object' && 'values' in row)
-  );
-}
+// Colors for the different JSON token types (tuned for the light background).
+const JSON_COLORS = {
+  key: "#0b6e4f",
+  string: "#b7472a",
+  number: "#1f6feb",
+  boolean: "#8250df",
+  null: "#6e7781",
+};
 
-// Build the ordered set of value columns across all regions, most significant
-// (largest total) first, so the table stays readable even when there are many
-// categories.
-function valueColumns(rows) {
-  const totals = {};
-  rows.forEach((row) => {
-    Object.entries(row.values || {}).forEach(([key, value]) => {
-      totals[key] = (totals[key] || 0) + (Number(value) || 0);
-    });
-  });
-  return Object.keys(totals).sort((a, b) => totals[b] - totals[a]);
-}
+// Matches JSON tokens: strings (optionally a key when followed by ":"),
+// booleans, null, and numbers.
+const JSON_TOKEN_RE =
+  /("(?:\\u[a-fA-F0-9]{4}|\\[^u]|[^\\"])*"(?:\s*:)?)|\b(true|false)\b|\b(null)\b|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g;
 
-function formatNumber(value) {
-  if (typeof value === 'number') {
-    return value.toLocaleString();
+// Turn a pretty-printed JSON string into an array of colored React spans.
+function highlightJson(json) {
+  const nodes = [];
+  let lastIndex = 0;
+  let match;
+  let key = 0;
+
+  while ((match = JSON_TOKEN_RE.exec(json)) !== null) {
+    if (match.index > lastIndex) {
+      nodes.push(json.slice(lastIndex, match.index));
+    }
+
+    const [token] = match;
+    let color;
+    if (match[1] !== undefined) {
+      color = token.trimEnd().endsWith(":") ? JSON_COLORS.key : JSON_COLORS.string;
+    } else if (match[2] !== undefined) {
+      color = JSON_COLORS.boolean;
+    } else if (match[3] !== undefined) {
+      color = JSON_COLORS.null;
+    } else {
+      color = JSON_COLORS.number;
+    }
+
+    nodes.push(
+      <span key={key++} style={{ color }}>
+        {token}
+      </span>,
+    );
+    lastIndex = match.index + token.length;
   }
-  return value ?? '';
-}
 
-function RegionTable({ rows }) {
-  const columns = valueColumns(rows);
-  return (
-    <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 480 }}>
-      <Table size="small" stickyHeader>
-        <TableHead>
-          <TableRow>
-            <TableCell>Region</TableCell>
-            {columns.map((column) => (
-              <TableCell key={column} align="right">
-                {column}
-              </TableCell>
-            ))}
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {rows.map((row, index) => (
-            <TableRow key={row.region_id || index} hover>
-              <TableCell component="th" scope="row">
-                {row.region_name || row.region_id}
-              </TableCell>
-              {columns.map((column) => (
-                <TableCell key={column} align="right">
-                  {formatNumber(row.values?.[column])}
-                </TableCell>
-              ))}
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
-  );
+  if (lastIndex < json.length) {
+    nodes.push(json.slice(lastIndex));
+  }
+
+  return nodes;
 }
 
 function JsonBlock({ value }) {
@@ -83,48 +69,66 @@ function JsonBlock({ value }) {
       sx={{
         p: 2,
         m: 0,
-        overflow: 'auto',
+        overflow: "auto",
         maxHeight: 480,
         fontSize: 13,
-        whiteSpace: 'pre-wrap',
-        wordBreak: 'break-word',
+        whiteSpace: "pre-wrap",
+        wordBreak: "break-word",
       }}
     >
-      {JSON.stringify(value, null, 2)}
+      {highlightJson(JSON.stringify(value, null, 2))}
     </Paper>
   );
 }
 
-export default function ResultView({ data }) {
+export default function ResultView({ data, fromCache }) {
   if (!data) {
     return null;
   }
 
-  const { command_str: commandStr, result, sources, query_time_ms: queryTimeMs } = data;
+  const { command_str: commandStr, sources, query_time_ms: queryTimeMs } = data;
 
   return (
     <Stack spacing={1.5}>
-      <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }} useFlexGap>
-        {commandStr && <Chip label={commandStr} color="primary" variant="outlined" />}
-        {typeof queryTimeMs === 'number' && (
+      <Stack
+        direction="row"
+        spacing={1}
+        sx={{ alignItems: "center", flexWrap: "wrap" }}
+        useFlexGap
+      >
+        {commandStr && (
+          <Chip label={commandStr} color="primary" variant="outlined" />
+        )}
+        <Chip
+          size="small"
+          icon={fromCache ? <CachedIcon /> : <BoltIcon />}
+          label={fromCache ? "Cache" : "Hot"}
+          color={fromCache ? "default" : "success"}
+          variant={fromCache ? "outlined" : "filled"}
+        />
+        {typeof queryTimeMs === "number" && (
           <Typography variant="caption" color="text.secondary">
             {queryTimeMs} ms
           </Typography>
         )}
       </Stack>
 
-      {isRegionList(result) ? <RegionTable rows={result} /> : <JsonBlock value={result} />}
+      <JsonBlock value={data} />
 
       {Array.isArray(sources) && sources.length > 0 && (
         <Box>
           <Typography variant="caption" color="text.secondary">
-            Sources:{' '}
+            Sources:{" "}
           </Typography>
           {sources.map((source, index) => (
             <Typography key={index} variant="caption" color="text.secondary">
-              {index > 0 && ', '}
+              {index > 0 && ", "}
               {source.url ? (
-                <Link href={source.url} target="_blank" rel="noopener noreferrer">
+                <Link
+                  href={source.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   {source.name || source.url}
                 </Link>
               ) : (

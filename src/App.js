@@ -1,35 +1,38 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import Alert from '@mui/material/Alert';
-import Autocomplete from '@mui/material/Autocomplete';
-import Button from '@mui/material/Button';
-import CircularProgress from '@mui/material/CircularProgress';
-import Container from '@mui/material/Container';
-import CssBaseline from '@mui/material/CssBaseline';
-import Divider from '@mui/material/Divider';
-import Link from '@mui/material/Link';
-import Paper from '@mui/material/Paper';
-import Stack from '@mui/material/Stack';
-import TextField from '@mui/material/TextField';
-import Typography from '@mui/material/Typography';
-import { createTheme, ThemeProvider } from '@mui/material/styles';
+import React, { useEffect, useMemo, useState } from "react";
+import Alert from "@mui/material/Alert";
+import Autocomplete from "@mui/material/Autocomplete";
+import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress";
+import Container from "@mui/material/Container";
+import CssBaseline from "@mui/material/CssBaseline";
+import Divider from "@mui/material/Divider";
+import Link from "@mui/material/Link";
+import Paper from "@mui/material/Paper";
+import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
+import { createTheme, ThemeProvider } from "@mui/material/styles";
 
-import { buildCommand, fetchHelp, runCommand } from './api';
-import ResultView from './ResultView';
+import { buildCommand, fetchHelp, runCommandCached } from "./api";
+import ResultView from "./ResultView";
 
 const theme = createTheme({
-  palette: { mode: 'light', primary: { main: '#0b6e4f' } },
-});
+  palette: { mode: "light", primary: { main: "#0b6e4f" } },  typography: {
+    fontFamily:
+      "'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif",
+  },});
 
 export default function App() {
   const [help, setHelp] = useState(null);
   const [helpError, setHelpError] = useState(null);
 
-  const [what, setWhat] = useState('Religion');
-  const [when, setWhen] = useState('2024');
-  const [where, setWhere] = useState('LK');
-  const [how, setHow] = useState('JSON');
+  const [what, setWhat] = useState("Religion");
+  const [when, setWhen] = useState("2024");
+  const [where, setWhere] = useState("LK");
+  const [how, setHow] = useState("JSON");
 
   const [result, setResult] = useState(null);
+  const [fromCache, setFromCache] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -49,14 +52,17 @@ export default function App() {
 
   const whatOptions = useMemo(
     () => (help ? Object.keys(help.what_to_whens).sort() : []),
-    [help]
+    [help],
   );
   const whenOptions = useMemo(
     () => (help && help.what_to_whens[what] ? help.what_to_whens[what] : []),
-    [help, what]
+    [help, what],
   );
   const howOptions = useMemo(() => (help ? help.how.bases : []), [help]);
-  const whereExamples = useMemo(() => (help ? help.where.examples : []), [help]);
+  const whereExamples = useMemo(
+    () => (help ? help.where.examples : []),
+    [help],
+  );
 
   const command = buildCommand({ what, when, where, how });
 
@@ -64,8 +70,9 @@ export default function App() {
     setLoading(true);
     setError(null);
     try {
-      const data = await runCommand(command);
+      const { data, fromCache: cached } = await runCommandCached(command);
       setResult(data);
+      setFromCache(cached);
     } catch (err) {
       setError(err.message);
       setResult(null);
@@ -83,7 +90,7 @@ export default function App() {
             Lanka Data
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            A minimal client for the{' '}
+            A minimal client for the{" "}
             <Link
               href="https://github.com/nuuuwan/lanka_data"
               target="_blank"
@@ -97,20 +104,20 @@ export default function App() {
 
         {helpError && (
           <Alert severity="warning" sx={{ mb: 2 }}>
-            Could not load options from the API ({helpError}). You can still type
-            values manually.
+            Could not load options from the API ({helpError}). You can still
+            type values manually.
           </Alert>
         )}
 
         <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
           <Stack spacing={2}>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
               <Autocomplete
                 freeSolo
                 fullWidth
                 options={whatOptions}
                 value={what}
-                onChange={(event, value) => setWhat(value || '')}
+                onChange={(event, value) => setWhat(value || "")}
                 onInputChange={(event, value) => setWhat(value)}
                 renderInput={(params) => (
                   <TextField {...params} label="What" placeholder="Religion" />
@@ -121,20 +128,20 @@ export default function App() {
                 fullWidth
                 options={whenOptions}
                 value={when}
-                onChange={(event, value) => setWhen(value || '')}
+                onChange={(event, value) => setWhen(value || "")}
                 onInputChange={(event, value) => setWhen(value)}
                 renderInput={(params) => (
                   <TextField {...params} label="When" placeholder="2024" />
                 )}
               />
             </Stack>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
               <Autocomplete
                 freeSolo
                 fullWidth
                 options={whereExamples}
                 value={where}
-                onChange={(event, value) => setWhere(value || '')}
+                onChange={(event, value) => setWhere(value || "")}
                 onInputChange={(event, value) => setWhere(value)}
                 renderInput={(params) => (
                   <TextField {...params} label="Where" placeholder="LK" />
@@ -145,7 +152,7 @@ export default function App() {
                 fullWidth
                 options={howOptions}
                 value={how}
-                onChange={(event, value) => setHow(value || '')}
+                onChange={(event, value) => setHow(value || "")}
                 onInputChange={(event, value) => setHow(value)}
                 renderInput={(params) => (
                   <TextField {...params} label="How" placeholder="JSON" />
@@ -156,25 +163,27 @@ export default function App() {
             <Divider />
 
             <Stack
-              direction={{ xs: 'column', sm: 'row' }}
+              direction={{ xs: "column", sm: "row" }}
               spacing={2}
               sx={{
-                alignItems: { xs: 'stretch', sm: 'center' },
-                justifyContent: 'space-between',
+                alignItems: { xs: "stretch", sm: "center" },
+                justifyContent: "space-between",
               }}
             >
               <Typography
                 variant="body2"
-                sx={{ fontFamily: 'monospace', wordBreak: 'break-all' }}
+                sx={{ fontFamily: "monospace", wordBreak: "break-all" }}
               >
-                {command || 'What/When/Where/How'}
+                {command || "What/When/Where/How"}
               </Typography>
               <Button
                 variant="contained"
                 onClick={onRun}
                 disabled={loading || !command}
                 startIcon={
-                  loading ? <CircularProgress size={16} color="inherit" /> : null
+                  loading ? (
+                    <CircularProgress size={16} color="inherit" />
+                  ) : null
                 }
               >
                 Run
@@ -189,7 +198,7 @@ export default function App() {
           </Alert>
         )}
 
-        <ResultView data={result} />
+        <ResultView data={result} fromCache={fromCache} />
       </Container>
     </ThemeProvider>
   );

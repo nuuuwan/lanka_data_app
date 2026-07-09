@@ -12,36 +12,101 @@
 //
 // See https://github.com/nuuuwan/lanka_data for the full grammar.
 
-export const API_BASE = 'https://lanka-data-phi.vercel.app';
+// The API (https://lanka-data-phi.vercel.app) does not send CORS headers, so a
+// browser cannot read its responses cross-origin. To work around this during
+// local development, requests go through the CRA dev-server proxy (see
+// src/setupProxy.js) under the `/api` prefix, which makes them same-origin.
+//
+// The dev base is anchored to `window.location.origin` (not a bare "/api")
+// because the app may be served under a base path (e.g. "/lanka_data_app/");
+// anchoring to the origin guarantees requests hit "<origin>/api/..." and are
+// caught by the proxy, instead of being resolved to "/lanka_data_app/api/...".
+//
+// In production (a static GitHub Pages build) there is no proxy, so the app
+// calls the API directly. For that to work the API MUST send CORS headers
+// (add a vercel.json with Access-Control-Allow-Origin in the lanka_data repo).
+export const API_BASE =
+  process.env.NODE_ENV === "development"
+    ? `${window.location.origin}/api`
+    : "https://lanka-data-phi.vercel.app";
 
 // Encode each field of the command path separately so that operators used in
 // the grammar (":", ",", "@", "...") survive, while spaces and other unsafe
 // characters are escaped.
 function encodeCommand(command) {
   return command
-    .split('/')
+    .split("/")
     .map((field) => encodeURIComponent(field))
-    .join('/');
+    .join("/");
 }
 
 export function buildCommand({ what, when, where, how }) {
   return [what, when, where, how]
-    .map((field) => (field || '').trim())
+    .map((field) => (field || "").trim())
     .filter((field) => field.length > 0)
-    .join('/');
+    .join("/");
 }
 
 export async function runCommand(command) {
   const url = `${API_BASE}/${encodeCommand(command)}`;
-  const response = await fetch(url);
+  const response = await fetch(url, {
+    headers: { Accept: "application/json" },
+  });
   if (!response.ok) {
-    throw new Error(`Request failed (${response.status} ${response.statusText})`);
+    throw new Error(
+      `Request failed (${response.status} ${response.statusText})`,
+    );
   }
+
+  // The API can return a non-JSON response (e.g. an HTML bot-challenge or
+  // error page from the host) even with a 2xx status. Detect that here so
+  // callers get a clear message instead of a cryptic JSON.parse error.
+  const contentType = response.headers.get("content-type") || "";
+  if (!contentType.includes("application/json")) {
+    throw new Error(
+      `Expected JSON but received "${contentType || "unknown"}". ` +
+        "The API may be temporarily unavailable or protected by a challenge.",
+    );
+  }
+
   return response.json();
 }
 
-// The "Help" command returns the available options for each field.
+// Persistent cache for API responses, keyed by command string, so repeated
+// requests for the same command are served from localStorage instead of
+// hitting the API again.
+const CACHE_PREFIX = "lanka_data_cache:";
+
+// Run a command, using the localStorage cache when available. Returns the
+// response data along with `fromCache`, indicating whether it came from the
+// cache (true) or was freshly fetched from the API (false).
+export async function runCommandCached(command) {
+  const cacheKey = CACHE_PREFIX + command;
+
+  try {
+    const cached = window.localStorage.getItem(cacheKey);
+    if (cached !== null) {
+      return { data: JSON.parse(cached), fromCache: true };
+    }
+  } catch (err) {
+    // Ignore unreadable/corrupt cache entries and fall through to fetching.
+  }
+
+  const data = await runCommand(command);
+
+  try {
+    window.localStorage.setItem(cacheKey, JSON.stringify(data));
+  } catch (err) {
+    // Ignore write failures (e.g. storage full or disabled); the request
+    // still succeeds, it just won't be cached.
+  }
+
+  return { data, fromCache: false };
+}
+
+// The "Help" command returns the available options for each field. It is
+// cached like any other command to minimise API calls.
 export async function fetchHelp() {
-  const data = await runCommand('Help');
+  const { data } = await runCommandCached("Help");
   return data.result;
 }
