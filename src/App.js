@@ -12,8 +12,14 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
+import { useLocation, useNavigate } from "react-router-dom";
 
-import { buildCommand, fetchHelp, runCommandCached } from "./api";
+import {
+  buildCommand,
+  encodeCommand,
+  fetchHelp,
+  runCommandCached,
+} from "./api";
 import ResultView from "./ResultView";
 
 const theme = createTheme({
@@ -25,6 +31,25 @@ const theme = createTheme({
 });
 
 export default function App() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // The command lives in the URL path (after the /lanka_data_app basename),
+  // e.g. "/Religion/2024/LK:district/JSON". Decode each segment so operators
+  // like ":" are preserved.
+  const pathCommand = location.pathname
+    .replace(/^\/+/, "")
+    .split("/")
+    .map((segment) => {
+      try {
+        return decodeURIComponent(segment);
+      } catch (err) {
+        return segment;
+      }
+    })
+    .filter((segment) => segment.length > 0)
+    .join("/");
+
   const [help, setHelp] = useState(null);
   const [helpError, setHelpError] = useState(null);
 
@@ -66,22 +91,51 @@ export default function App() {
     [help],
   );
 
-  const command = buildCommand({ what, when, where, how });
+  // Whenever the command in the URL changes (deep link, back/forward, or a Run
+  // that navigated), populate the form from it and run it.
+  useEffect(() => {
+    if (!pathCommand) {
+      return undefined;
+    }
 
-  const onRun = async () => {
+    const [w = "", wh = "", wr = "", ...rest] = pathCommand.split("/");
+    setWhat(w);
+    setWhen(wh);
+    setWhere(wr);
+    setHow(rest.join("/"));
+
+    let active = true;
     setLoading(true);
     setError(null);
     setResult(null);
-    try {
-      const { data, fromCache: cached } = await runCommandCached(command);
-      setResult(data);
-      setFromCache(cached);
-    } catch (err) {
-      setError(err.message);
-      setResult(null);
-    } finally {
-      setLoading(false);
+    runCommandCached(pathCommand)
+      .then(({ data, fromCache: cached }) => {
+        if (!active) return;
+        setResult(data);
+        setFromCache(cached);
+      })
+      .catch((err) => {
+        if (!active) return;
+        setError(err.message);
+        setResult(null);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [pathCommand]);
+
+  const command = buildCommand({ what, when, where, how });
+
+  // Clicking Run updates the URL; the effect above performs the actual fetch.
+  const onRun = () => {
+    if (!command) {
+      return;
     }
+    navigate(`/${encodeCommand(command)}`);
   };
 
   return (

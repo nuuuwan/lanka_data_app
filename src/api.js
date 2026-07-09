@@ -35,7 +35,7 @@ export const API_BASE =
 // unsafe characters are escaped. encodeURIComponent escapes these operators
 // (e.g. ":" -> "%3A"), but the API expects them literally (an encoded ":"
 // returns HTTP 400), so we restore them after encoding.
-function encodeCommand(command) {
+export function encodeCommand(command) {
   return command
     .split("/")
     .map((field) =>
