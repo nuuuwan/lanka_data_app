@@ -87,7 +87,9 @@ export default function ResultView({ data, fromCache }) {
     return null;
   }
 
-  const { query_time_ms: queryTimeMs } = data;
+  const { result, query_time_ms: queryTimeMs } = data;
+  const imageUrl =
+    result && typeof result === "object" ? result.image_url : undefined;
 
   return (
     <Stack spacing={1.5}>
@@ -110,6 +112,15 @@ export default function ResultView({ data, fromCache }) {
           </Typography>
         )}
       </Stack>
+
+      {imageUrl && (
+        <Box
+          component="img"
+          src={imageUrl}
+          alt={data.command_str || "Result image"}
+          sx={{ maxWidth: "100%", height: "auto", borderRadius: 1 }}
+        />
+      )}
 
       <JsonBlock value={data} />
     </Stack>

@@ -31,12 +31,20 @@ export const API_BASE =
     : "https://lanka-data-phi.vercel.app";
 
 // Encode each field of the command path separately so that operators used in
-// the grammar (":", ",", "@", "...") survive, while spaces and other unsafe
-// characters are escaped.
+// the grammar (":", ",", "@", "+", "...") survive, while spaces and other
+// unsafe characters are escaped. encodeURIComponent escapes these operators
+// (e.g. ":" -> "%3A"), but the API expects them literally (an encoded ":"
+// returns HTTP 400), so we restore them after encoding.
 function encodeCommand(command) {
   return command
     .split("/")
-    .map((field) => encodeURIComponent(field))
+    .map((field) =>
+      encodeURIComponent(field)
+        .replace(/%3A/gi, ":")
+        .replace(/%2C/gi, ",")
+        .replace(/%40/gi, "@")
+        .replace(/%2B/gi, "+"),
+    )
     .join("/");
 }
 
