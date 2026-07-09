@@ -3,7 +3,6 @@ import BoltIcon from "@mui/icons-material/Bolt";
 import CachedIcon from "@mui/icons-material/Cached";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
-import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
@@ -88,7 +87,7 @@ export default function ResultView({ data, fromCache }) {
     return null;
   }
 
-  const { command_str: commandStr, sources, query_time_ms: queryTimeMs } = data;
+  const { query_time_ms: queryTimeMs } = data;
 
   return (
     <Stack spacing={1.5}>
@@ -98,9 +97,6 @@ export default function ResultView({ data, fromCache }) {
         sx={{ alignItems: "center", flexWrap: "wrap" }}
         useFlexGap
       >
-        {commandStr && (
-          <Chip label={commandStr} color="primary" variant="outlined" />
-        )}
         <Chip
           size="small"
           icon={fromCache ? <CachedIcon /> : <BoltIcon />}
@@ -116,30 +112,6 @@ export default function ResultView({ data, fromCache }) {
       </Stack>
 
       <JsonBlock value={data} />
-
-      {Array.isArray(sources) && sources.length > 0 && (
-        <Box>
-          <Typography variant="caption" color="text.secondary">
-            Sources:{" "}
-          </Typography>
-          {sources.map((source, index) => (
-            <Typography key={index} variant="caption" color="text.secondary">
-              {index > 0 && ", "}
-              {source.url ? (
-                <Link
-                  href={source.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {source.name || source.url}
-                </Link>
-              ) : (
-                source.name
-              )}
-            </Typography>
-          ))}
-        </Box>
-      )}
     </Stack>
   );
 }
