@@ -4,7 +4,6 @@ import CachedIcon from "@mui/icons-material/Cached";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import Link from "@mui/material/Link";
-import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
@@ -37,7 +36,9 @@ function highlightJson(json) {
     const [token] = match;
     let color;
     if (match[1] !== undefined) {
-      color = token.trimEnd().endsWith(":") ? JSON_COLORS.key : JSON_COLORS.string;
+      color = token.trimEnd().endsWith(":")
+        ? JSON_COLORS.key
+        : JSON_COLORS.string;
     } else if (match[2] !== undefined) {
       color = JSON_COLORS.boolean;
     } else if (match[3] !== undefined) {
@@ -63,8 +64,7 @@ function highlightJson(json) {
 
 function JsonBlock({ value }) {
   return (
-    <Paper
-      variant="outlined"
+    <Box
       component="pre"
       sx={{
         p: 2,
@@ -74,10 +74,12 @@ function JsonBlock({ value }) {
         fontSize: 13,
         whiteSpace: "pre-wrap",
         wordBreak: "break-word",
+        bgcolor: "grey.50",
+        borderRadius: 1,
       }}
     >
       {highlightJson(JSON.stringify(value, null, 2))}
-    </Paper>
+    </Box>
   );
 }
 

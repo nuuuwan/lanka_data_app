@@ -1,13 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Autocomplete from "@mui/material/Autocomplete";
+import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
 import Container from "@mui/material/Container";
 import CssBaseline from "@mui/material/CssBaseline";
 import Divider from "@mui/material/Divider";
 import Link from "@mui/material/Link";
-import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
@@ -17,10 +17,12 @@ import { buildCommand, fetchHelp, runCommandCached } from "./api";
 import ResultView from "./ResultView";
 
 const theme = createTheme({
-  palette: { mode: "light", primary: { main: "#0b6e4f" } },  typography: {
+  palette: { mode: "light", primary: { main: "#0b6e4f" } },
+  typography: {
     fontFamily:
-      "'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif",
-  },});
+      "'Quicksand', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif",
+  },
+});
 
 export default function App() {
   const [help, setHelp] = useState(null);
@@ -109,7 +111,7 @@ export default function App() {
           </Alert>
         )}
 
-        <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
+        <Box sx={{ mb: 3 }}>
           <Stack spacing={2}>
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
               <Autocomplete
@@ -190,7 +192,7 @@ export default function App() {
               </Button>
             </Stack>
           </Stack>
-        </Paper>
+        </Box>
 
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
